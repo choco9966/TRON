@@ -3,6 +3,15 @@ set -e
 
 DATASET=$1
 
+# function prepare_movielense {
+#     echo "Downloading movielense"
+#     wget -nc http://files.grouplens.org/papers/ml-10m.zip -P datasets/movielense/
+#     unzip -n datasets/movielense/ml-10m.zip -d datasets/movielense/
+    
+#     echo "Preprocessing movielense"
+#     pipenv run python -m src.preprocessing --dataset movielense
+# }
+
 function prepare_yoochoose {
     echo "Downloading yoochoose"
     wget -nc https://s3-eu-west-1.amazonaws.com/yc-rdata/yoochoose-data.7z -P datasets/yoochoose/
@@ -44,7 +53,9 @@ function prepare_otto {
     pipenv run python -m src.preprocessing --dataset otto
 }
 
-if [ "$DATASET" = "yoochoose" ]; then
+if [ "$DATASET" = "movielense" ]; then
+    prepare_movielense
+elif [ "$DATASET" = "yoochoose" ]; then
     prepare_yoochoose
 elif [ "$DATASET" = "diginetica" ]; then
     prepare_diginetica
