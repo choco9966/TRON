@@ -10,17 +10,22 @@ from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
 from tqdm.auto import tqdm
+import pandas as pd 
 
 
 def read_file(filename, header=False):
+    if str(filename).split('/')[-1] == 'ratings.dat': 
+        return load_movielense(filename)
     with open(filename, "r") as f:
         file_content = f.readlines()
     return file_content if not header else file_content[1:]
 
-
 def sort_events(events):
     return sorted(events, key=lambda event: event["ts"])
 
+def load_movielense(data_file):
+    data = pd.read_csv(data_file, delimiter='::', header=None, names=['user_id', 'movie_id', 'rating', 'timestamp'], engine='python')
+    return data.values
 
 def create_sessions(events, dataset_name):
     sessions = dict()
@@ -31,6 +36,9 @@ def create_sessions(events, dataset_name):
         elif dataset_name == "yoochoose":
             sid, ts, aid, _cat = event.strip().split(",")
             ts = datetime.strptime(ts, "%Y-%m-%dT%H:%M:%S.%fZ").timestamp()
+        elif dataset_name == "movielense": 
+            sid, aid, _, timestamp = event
+            ts = datetime.utcfromtimestamp(float(timestamp)).timestamp()
         if not sid in sessions:
             sessions[sid] = list()
         sessions[sid].append({"aid": aid, "ts": ts, "type": "clicks"})
@@ -233,6 +241,7 @@ class DatasetConf(Enum):
     YOOCHOOSE = 'yoochoose'
     DIGINETICA = 'diginetica'
     OTTO = 'otto'
+    MOVIELENSE = 'movielense'
     ALL = 'all'
 
     def __str__(self):
@@ -266,7 +275,17 @@ def main():
         "split_idx": 0  # use first session timestamp for split
     }
 
-    if args.dataset == DatasetConf.YOOCHOOSE:
+    movielense_conf = {
+        "dataset_name": "movielense",
+        "data_file": data_dir / "movielense" / "ml-10M100K" / "ratings.dat",
+        "header": True,
+        "split_seconds": 86400 * 90,  # 90 days (for testing)
+        "split_idx": 0  # use first session timestamp for split
+    }
+
+    if args.dataset == DatasetConf.MOVIELENSE:
+        run_preprocessing(movielense_conf, data_dir)
+    elif args.dataset == DatasetConf.YOOCHOOSE:
         run_preprocessing(yoochoose_conf, data_dir)
     elif args.dataset == DatasetConf.DIGINETICA:
         run_preprocessing(diginetica_conf, data_dir)
